@@ -1,5 +1,5 @@
 from flask import Flask
-from flask import render_template
+from flask import render_template,url_for
 from flask import request, redirect
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -10,7 +10,7 @@ import os
 import re
 
 app = Flask(__name__)
-app.config["IMAGE_UPLOADS"] = "./IMG/"
+app.config["IMAGE_UPLOADS"] = os.path.join('static','upload')
 app.config["ALLOWED_IMAGE_EXTENSIONS"] = ["JPEG","JPG","PNG","GIF"]
 app.config["MAX_CONTENT_LENGTH"] = 50*1024*1024
 IMAGE_SIZE = 192
@@ -25,7 +25,7 @@ def allowed_image_filesize(filesize):
     return int(filesize) <= app.config["MAX_CONTENT_LENGTH"] 
 @app.route("/")
 def home():
-    return "Hello, Flask!"
+    return render_template("public/upload_image.html")
 
 @app.route("/hello/<name>")
 def hello_there(name):
@@ -53,7 +53,23 @@ def preprocess_image(image):
     image /= 255.0
     return image
 
-@app.route("/upload-image",methods = ["GET","POST"])
+def classify_img(path):
+    processed_img = load_and_preprocess_image(path)
+    result = model.predict(tf.reshape(processed_img,(1,IMAGE_SIZE,IMAGE_SIZE,3)))
+    print(result)
+    return result[0]
+def test_model():
+    model = load_model("catdog_classifier_MobileNetV2.h5")
+    model.summary()
+
+@app.route("/files",methods=["GET"])
+def get_image():
+    names = os.listdir(app.config["IMAGE_UPLOADS"])
+    image_paths = [os.path.join(app.config["IMAGE_UPLOADS"],name) for name in names]
+
+    return render_template('public/all_image.html', image_paths=image_paths)
+
+@app.route("/classification",methods = ["GET","POST"])
 def upload_image():
 #   test_model()
 #    model.summary()
@@ -77,11 +93,4 @@ def upload_image():
             
             return render_template("public/upload_image.html",confidence = confidence)
     return render_template("public/upload_image.html")
-def classify_img(path):
-    processed_img = load_and_preprocess_image(path)
-    result = model.predict(tf.reshape(processed_img,(1,IMAGE_SIZE,IMAGE_SIZE,3)))
-    print(result)
-    return result[0]
-def test_model():
-    model = load_model("catdog_classifier_MobileNetV2.h5")
-    model.summary()
+

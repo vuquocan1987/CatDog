@@ -1,0 +1,9 @@
+{% extends "public/templates/public_template.html" %}
+
+{% block title %}Files{% endblock %}
+
+{% block main %}
+{% for image_path in image_paths%}
+<img src = "{{image_path}}" >
+{% endfor %}
+{% endblock %}
